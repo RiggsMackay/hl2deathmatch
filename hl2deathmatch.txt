@@ -1,0 +1,7 @@
+"hl2deathmatch"
+{
+	"base"			"base"
+	"title"			"Half-Life 2 Deathmatch"
+	"author" 		"Riggs.mackay"
+	"menusystem"	"1"
+}
