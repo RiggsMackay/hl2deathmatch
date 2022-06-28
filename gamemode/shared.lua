@@ -220,3 +220,30 @@ function GM:CreateTeams()
 	team.SetSpawnPoint(hl2deathmach.teams[FACTION_REBELS].index, {"info_player_rebel", "info_player_deathmatch"})
 	team.SetSpawnPoint(hl2deathmach.teams[FACTION_COMBINES].index, {"info_player_combine", "info_player_deathmatch"})
 end
+
+--[[ Hooks ]]--
+
+function GM:PlayerFootstep(ply, pos, foot, sound, volume)
+    local pitch = math.random(90.0, 110.0)
+    if ( ply:GetModel():find("police") ) then
+        sound = "npc/metropolice/gear"..math.random(1,6)..".wav"
+    elseif ( ply:GetModel():find("combine") ) then
+        sound = "npc/combine_soldier/gear"..math.random(1,6)..".wav"
+    elseif ( ply:GetModel():find("group0") ) then
+        sound = table.Random({
+            "npc/footsteps/hardboot_generic1.wav",
+            "npc/footsteps/hardboot_generic2.wav",
+            "npc/footsteps/hardboot_generic3.wav",
+            "npc/footsteps/hardboot_generic4.wav",
+            "npc/footsteps/hardboot_generic5.wav",
+            "npc/footsteps/hardboot_generic6.wav",
+            "npc/footsteps/hardboot_generic8.wav",
+        })
+    end
+
+    if ( SERVER ) then
+        ply:EmitSound(sound, 70, pitch, volume / 2)
+    end
+
+    return true
+end
