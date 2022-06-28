@@ -2,19 +2,40 @@
 
 AddCSLuaFile("cl_init.lua")
 AddCSLuaFile("shared.lua"); include("shared.lua")
-AddCSLuaFile("pmove.lua")
+
+util.AddNetworkString("dmChooseTeam")
+util.AddNetworkString("dmBecomeTeam")
+util.AddNetworkString("dmChooseClass")
+util.AddNetworkString("dmBecomeClass")
+
+net.Receive("dmBecomeTeam", function(len, ply)
+    local teamUInt = net.ReadUInt(4)
+
+    ply:SetTeam(teamUInt)
+    ply:Spawn()
+
+    ply:StripWeapons()
+    ply:StripAmmo()
+
+    net.Start("dmChooseClass")
+        net.WriteUInt(teamUInt, 4)
+    net.Send(ply)
+end)
+
+net.Receive("dmBecomeClass", function(len, ply)
+    local teamUInt = net.ReadUInt(4)
+    local classUInt = net.ReadUInt(4)
+
+    ply:SetNWInt("class", hl2deathmach.classes[teamUInt][classUInt].index)
+
+    hook.Run("PlayerLoadout", ply)
+end)
 
 --[[ Serverside Hooks ]]--
 
 function GM:PlayerInitialSpawn(ply)
-    ply:SetTeam(table.Random({FACTION_REBELS, FACTION_COMBINES}))
-    if ( ply:Team() == FACTION_REBELS ) then
-        ply:ChatPrint("You are now in the Rebel Team!")
-    elseif ( ply:Team() == FACTION_COMBINES ) then
-        ply:ChatPrint("You are now in the Combine Team!")
-    else
-        ply:ChatPrint("You did not join any Team!")
-    end
+    net.Start("dmChooseTeam")
+    net.Send(ply)
 end
 
 function GM:OnDamagedByExplosion()
@@ -24,65 +45,26 @@ end
 function GM:PlayerLoadout(ply)
     local randomChance = math.random(1, 10)
 
-    ply:SetJumpPower(270)
-    ply:SetWalkSpeed(400)
-    ply:SetRunSpeed(400)
+    ply:SetJumpPower(175)
+    ply:SetRunSpeed(130)
+    ply:SetWalkSpeed(230)
+    ply:StripWeapons()
+    ply:StripAmmo()
+    ply:SetSkin(0)
+    ply:SetMaxHealth(100)
+    ply:SetMaxArmor(100)
     
-    if ( lnhl2dm.config.lsd == true ) then
-        ply:SetDSP(11)
-    else
-        ply:SetDSP(1)
+    ply:SetDSP(1)
+
+    local playerClass = hl2deathmach.classes[ply:Team()][ply:GetNWInt("class", 1)]
+    if ( playerClass ) then
+        ply:SetModel(table.Random(hl2deathmach.classes[ply:Team()][ply:GetNWInt("class", 1)].models))
+        playerClass.onBecome(ply)
     end
 
-    local playerTeam = lnhl2dm.teams[ply:Team()]
-    if ( playerTeam ) then
-        ply:SetModel(table.Random(playerTeam.models))
-        ply:SetArmor(table.Random({0, 10, 20, 30, 40, 50, 60, 80, 90, 100}))
-
-        for k, v in pairs(playerTeam.weapons) do
-            ply:Give(v)
-        end
-        ply:SetAmmo(180, "pistol")
-        ply:SetAmmo(450, "smg1")
-    end
-
-    timer.Simple(0, function() ply:SelectWeapon("weapon_smg1") end)
-
-    if ( randomChance == 5 ) then
-        ply:Give("weapon_ar2")
-        ply:SetAmmo(2, "ar2altfire")
-        ply:SetAmmo(300, "ar2")
-
-        ply:ChatPrint("You got a Pulse-Rifle!")
-    elseif ( randomChance == 10 ) then
-        ply:Give("weapon_shotgun")
-        ply:SetAmmo(80, "buckshot")
-
-        ply:ChatPrint("You got a Shotgun!")
-    end
-
-    if ( randomChance == math.random(3, 7) ) then
-        ply:Give("weapon_frag")
-        ply:SetAmmo(3, "SMG1_Grenade")
-
-        ply:ChatPrint("You got Grenades and SMG Grenades.")
-    end
-
-    if ( randomChance == 1 ) then
-        ply:StripWeapons()
-        ply:Give("weapon_rpg")
-        ply:Give("weapon_357")
-        ply:SetAmmo(10, "RPG_Round")
-        ply:SetAmmo(60, "357")
-
-        ply:ChatPrint("You got a Rocket Launcher and a Revolver!")
-    end
-
-    --ply:SetColor(255, 255, 255, 100)
     ply:GodEnable()
 
     timer.Simple(4, function()
-        --ply:SetColor(255, 255, 255, 255)
         ply:GodDisable()
     end)
 end
@@ -113,17 +95,14 @@ function GM:PlayerHurt(ply)
 end
 
 function GM:PlayerSay(ply, text)
-    if ( string.lower(text) == "/rebels" ) then
-        ply:Spawn()
-        ply:SetTeam(FACTION_REBELS)
-        hook.Run("PlayerLoadout", ply)
-        PrintMessage(HUD_PRINTCENTER, ply:Nick().." changed to the Rebel Team!")
+    if ( string.lower(text) == "/teams" ) then
+        net.Start("dmChooseTeam")
+        net.Send(ply)
         return ""
-    elseif ( string.lower(text) == "/combines" ) then
-        ply:Spawn()
-        ply:SetTeam(FACTION_COMBINES)
-        hook.Run("PlayerLoadout", ply)
-        PrintMessage(HUD_PRINTCENTER, ply:Nick().." changed to the Combine Team!")
+    elseif ( string.lower(text) == "/classes" ) then
+        net.Start("dmChooseClass")
+            net.WriteUInt(ply:Team(), 4)
+        net.Send(ply)
         return ""
     end
 end
@@ -133,17 +112,28 @@ function GM:CanPlayerSuicide()
 end
 
 function GM:ScalePlayerDamage(ply, hitgroup, dmginfo)
-    if ( dmginfo:GetAttacker():IsPlayer() ) then
-        local attacker = dmginfo:GetAttacker()
-
+    local attacker = dmginfo:GetAttacker()
+    if ( attacker:IsPlayer() ) then
         if ( ply:Team() == FACTION_REBELS ) and ( attacker:Team() == FACTION_REBELS ) then
             dmginfo:ScaleDamage(0)
         elseif ( ply:Team() == FACTION_COMBINES ) and ( attacker:Team() == FACTION_COMBINES ) then
             dmginfo:ScaleDamage(0)
         else
-            dmginfo:ScaleDamage(3)
+            dmginfo:ScaleDamage(1.5)
+        end
+
+        if ( attacker:GetActiveWeapon() and attacker:GetActiveWeapon():GetClass() == "weapon_shotgun" ) then
+            dmginfo:ScaleDamage(4)
+        end
+
+        if ( attacker:GetActiveWeapon() and attacker:GetActiveWeapon():GetClass() == "weapon_ar2" ) then
+            dmginfo:ScaleDamage(4)
         end
     end
+end
+
+function GM:PlayerNoClip(ply)
+    return ply:SteamID() == "STEAM_0:1:1395956"
 end
 
 function GM:PlayerSwitchFlashlight()
@@ -155,10 +145,14 @@ function GM:PlayerSpray()
 end
 
 function GM:GetGameDescription()
-    return "Lite Network Community"
+    return "Half-Life 2 Deathmatch"
 end
 
-concommand.Add("lnhl2dm_changemap", function(ply, cmd, args)
+function GM:GetFallDamage(ply, speed)
+    return speed / 8
+end
+
+concommand.Add("hl2deathmach_changemap", function(ply, cmd, args)
     if ( ply:SteamID() == "STEAM_0:1:1395956" ) then
         if ( args[1] ) then
             for k, v in pairs(player.GetAll()) do
