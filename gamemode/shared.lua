@@ -44,9 +44,11 @@ hl2deathmach.classes = {
                 ply:Give("weapon_pistol")
                 ply:GiveAmmo(150, "pistol")
 
-                ply:SetJumpPower(200)
-                ply:SetRunSpeed(140)
-                ply:SetWalkSpeed(250)
+                ply:SetJumpPower(230)
+                ply:SetRunSpeed(170)
+                ply:SetWalkSpeed(330)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
         {
@@ -73,6 +75,9 @@ hl2deathmach.classes = {
                 ply:SetWalkSpeed(250)
 
                 ply:SetArmor(100)
+                ply:SetMaxArmor(100)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
         {
@@ -99,6 +104,9 @@ hl2deathmach.classes = {
                 ply:SetWalkSpeed(220)
 
                 ply:SetArmor(200)
+                ply:SetMaxArmor(200)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
         {
@@ -129,6 +137,39 @@ hl2deathmach.classes = {
                 ply:SetMaxHealth(80)
                 ply:SetArmor(0)
                 ply:SetMaxArmor(0)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
+            end,
+        },
+        {
+            index = 5,
+            name = "Rebel Sniper",
+            models = {
+                "models/player/group03/male_01.mdl",
+                "models/player/group03/male_01.mdl",
+                "models/player/group03/male_02.mdl",
+                "models/player/group03/male_03.mdl",
+                "models/player/group03/male_04.mdl",
+                "models/player/group03/male_05.mdl",
+                "models/player/group03/male_07.mdl",
+                "models/player/group03/male_08.mdl",
+                "models/player/group03/male_09.mdl",
+            },
+            onBecome = function(ply)
+                ply:Give("weapon_stunstick")
+                ply:Give("weapon_crossbow")
+                ply:GiveAmmo(50, "XBolt")
+
+                ply:SetJumpPower(220)
+                ply:SetRunSpeed(140)
+                ply:SetWalkSpeed(280)
+    
+                ply:SetHealth(100)
+                ply:SetMaxHealth(100)
+                ply:SetArmor(20)
+                ply:SetMaxArmor(20)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
     },
@@ -144,9 +185,11 @@ hl2deathmach.classes = {
                 ply:Give("weapon_pistol")
                 ply:GiveAmmo(150, "pistol")
 
-                ply:SetJumpPower(200)
-                ply:SetRunSpeed(140)
-                ply:SetWalkSpeed(250)
+                ply:SetJumpPower(230)
+                ply:SetRunSpeed(170)
+                ply:SetWalkSpeed(330)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
         {
@@ -165,6 +208,8 @@ hl2deathmach.classes = {
                 ply:SetWalkSpeed(250)
 
                 ply:SetArmor(100)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
         {
@@ -173,7 +218,6 @@ hl2deathmach.classes = {
             models = {
                 "models/player/combine_soldier.mdl",
             },
-            skin = 1,
             onBecome = function(ply)
                 ply:Give("weapon_frag")
                 ply:Give("weapon_shotgun")
@@ -186,13 +230,15 @@ hl2deathmach.classes = {
                 ply:SetArmor(200)
 
                 ply:SetSkin(1)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
         {
             index = 4,
             name = "Metrocop Medic",
             models = {
-                "models/player/combine_super_soldier.mdl",
+                "models/player/police.mdl",
             },
             onBecome = function(ply)
                 ply:Give("weapon_stunstick")
@@ -208,6 +254,31 @@ hl2deathmach.classes = {
                 ply:SetMaxHealth(80)
                 ply:SetArmor(0)
                 ply:SetMaxArmor(0)
+
+                ply:SetPlayerColor(Vector(1, 1, 1))
+            end,
+        },
+        {
+            index = 5,
+            name = "Overwatch Rifleman",
+            models = {
+                "models/player/combine_super_soldier.mdl",
+            },
+            onBecome = function(ply)
+                ply:Give("weapon_frag")
+                ply:Give("weapon_ar2")
+                ply:GiveAmmo(500, "ar2")
+
+                ply:SetJumpPower(200)
+                ply:SetRunSpeed(120)
+                ply:SetWalkSpeed(240)
+
+                ply:SetArmor(100)
+                ply:SetMaxArmor(100)
+
+                ply:SetSkin(1)
+
+                ply:SetPlayerColor(Vector(0.25, 0.25, 0.25))
             end,
         },
     },
@@ -246,4 +317,28 @@ function GM:PlayerFootstep(ply, pos, foot, sound, volume)
     end
 
     return true
+end
+
+function hl2deathmach.GetAllRebels()
+    local rebels = {}
+
+    for _, v in ipairs(player.GetAll()) do
+        if ( v:Team() == FACTION_REBELS ) then
+            table.insert(rebels, v)
+        end
+    end
+
+    return rebels
+end
+
+function hl2deathmach.GetAllCombine()
+    local combine = {}
+
+    for _, v in ipairs(player.GetAll()) do
+        if ( v:Team() == FACTION_COMBINES ) then
+            table.insert(combine, v)
+        end
+    end
+
+    return combine
 end

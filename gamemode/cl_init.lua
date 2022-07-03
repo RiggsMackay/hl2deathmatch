@@ -41,6 +41,11 @@ net.Receive("dmChooseClass", function()
                     net.WriteUInt(teamUInt, 4)
                     net.WriteUInt(4, 4)
                 net.SendToServer()
+            end, "Rebel Sniper", function()
+                net.Start("dmBecomeClass")
+                    net.WriteUInt(teamUInt, 4)
+                    net.WriteUInt(5, 4)
+                net.SendToServer()
             end)
         end)
     elseif ( teamUInt == FACTION_COMBINES ) then
@@ -67,10 +72,10 @@ net.Receive("dmChooseClass", function()
                     net.WriteUInt(teamUInt, 4)
                     net.WriteUInt(3, 4)
                 net.SendToServer()
-            end, "Overwatch Medic", function()
+            end, "Overwatch Rifleman", function()
                 net.Start("dmBecomeClass")
                     net.WriteUInt(teamUInt, 4)
-                    net.WriteUInt(4, 4)
+                    net.WriteUInt(5, 4)
                 net.SendToServer()
             end)
         end)
@@ -82,32 +87,53 @@ end)
 surface.CreateFont("HudFontBig", {
     font = "Verdana",
     size = 60,
+    weight = 800,
+})
+
+surface.CreateFont("HudFontMedium", {
+    font = "Verdana",
+    size = 30,
+    weight = 800,
+})
+
+surface.CreateFont("TargetFontMedium", {
+    font = "Verdana",
+    size = 18,
+    weight = 800,
 })
 
 --[[ Hooks ]]--
 
 local color_green = Color(0, 255, 0, 50)
 function GM:PreDrawHalos()
-	local teamMates = {}
+    local teamMates = {}
 
-	for _, ply in ipairs( player.GetAll() ) do
-		if ( LocalPlayer():Team() == ply:Team() ) then
-			teamMates[#teamMates + 1] = ply
-		end
-	end
+    for _, ply in ipairs( player.GetAll() ) do
+        if ( LocalPlayer():Team() == ply:Team() ) then
+            teamMates[#teamMates + 1] = ply
+        end
+    end
 
-	halo.Add(teamMates, color_green, 2, 2, 5, true, true)
+    halo.Add(teamMates, color_green, 2, 2, 5, true, true)
 end
 
 --[[ Hud ]]--
 
 hook.Add("HUDShouldDraw", "dontDrawIt", function(name)
-	for k, v in pairs ({"CHudHealth", "CHudBattery"}) do 
-		if ( name == v ) then
-			return false
-		end
-	end
+    for k, v in pairs ({"CHudHealth", "CHudBattery"}) do 
+        if ( name == v ) then
+            return false
+        end
+    end
 end)
+
+function GM:PlayerStartVoice(ply)
+    ply.isTalking = true
+end
+
+function GM:PlayerEndVoice(ply)
+    ply.isTalking = nil
+end
 
 function GM:HUDPaint()
     local ply = LocalPlayer()
@@ -120,5 +146,32 @@ function GM:HUDPaint()
 
         draw.DrawText(ply:Health(), "HudFontBig", 100, ScrH() - 90, teamColor, TEXT_ALIGN_CENTER)
         draw.DrawText(ply:Armor(), "HudFontBig", 300, ScrH() - 90, teamColor, TEXT_ALIGN_CENTER)
+
+        draw.DrawText("Rebels: "..#hl2deathmach.GetAllRebels(), "HudFontMedium", 10, 5, team.GetColor(FACTION_REBELS), TEXT_ALIGN_LEFT)
+        draw.DrawText("Combine: "..#hl2deathmach.GetAllCombine(), "HudFontMedium", 10, 45, team.GetColor(FACTION_COMBINES), TEXT_ALIGN_LEFT)
+    end
+
+    local voiceSpacing = 0
+    for k, v in pairs(player.GetAll()) do
+        if not ( v:Team() == ply:Team() ) then
+            continue
+        end
+
+        if ( v.isTalking ) then
+            draw.DrawText(v:Nick(), "HudFontMedium", ScrW() - 10, 10 + voiceSpacing, team.GetColor(v:Team()), TEXT_ALIGN_RIGHT)
+            voiceSpacing = voiceSpacing + 40
+        end
+
+        if ( v:Nick() == ply:Nick() ) then
+            continue
+        end
+
+        local pos = v:EyePos()
+    
+        pos.z = pos.z
+        pos = pos:ToScreen()
+        pos.y = pos.y - 20
+
+        draw.DrawText(v:Nick(), "TargetFontMedium", pos.x, pos.y, team.GetColor(v:Team()), TEXT_ALIGN_CENTER)
     end
 end

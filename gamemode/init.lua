@@ -43,6 +43,8 @@ function GM:OnDamagedByExplosion()
 end
 
 function GM:PlayerLoadout(ply)
+    if not ( ply:Team() ) then return end
+
     local randomChance = math.random(1, 10)
 
     ply:SetJumpPower(175)
@@ -63,18 +65,20 @@ function GM:PlayerLoadout(ply)
     end
 
     ply:GodEnable()
+    ply:Freeze(true)
 
-    timer.Simple(4, function()
+    timer.Simple(1, function()
         ply:GodDisable()
+        ply:Freeze(false)
+        ply:EmitSound("buttons/combine_button7.wav")
     end)
 end
 
 function GM:PlayerDeath(ply, inflictor, attacker)
-    ply:EmitSound("")
     if ( ply:Team() == FACTION_REBELS ) then
-        ply:EmitSound("vo/npc/male01/pain0"..math.random(1,9)..".wav", 80)
+        ply:EmitSound("vo/npc/male01/pain0"..math.random(1,9)..".wav", 90)
     elseif ( ply:Team() == FACTION_COMBINES ) then
-        ply:EmitSound("npc/combine_soldier/die"..math.random(1,3)..".wav", 80)
+        ply:EmitSound("npc/combine_soldier/die"..math.random(1,3)..".wav", 90)
     end
 
     if ( attacker:IsPlayer() ) then
@@ -83,6 +87,12 @@ function GM:PlayerDeath(ply, inflictor, attacker)
         elseif ( attacker:Team() == FACTION_COMBINES ) then
             attacker:EmitSound("npc/metropolice/vo/chuckle.wav", 80)
         end
+
+        attacker:GiveAmmo(attacker:Health() * 2,  attacker:GetActiveWeapon():GetPrimaryAmmoType())
+        attacker:SetHealth(math.min(attacker:GetMaxHealth(), attacker:Health() + 40))
+
+        attacker:PrintMessage(HUD_PRINTCENTER, "You killed "..ply:Nick())
+        ply:PrintMessage(HUD_PRINTCENTER, "You got killed by "..attacker:Nick())
     end
 end
 
@@ -114,26 +124,32 @@ end
 function GM:ScalePlayerDamage(ply, hitgroup, dmginfo)
     local attacker = dmginfo:GetAttacker()
     if ( attacker:IsPlayer() ) then
-        if ( ply:Team() == FACTION_REBELS ) and ( attacker:Team() == FACTION_REBELS ) then
-            dmginfo:ScaleDamage(0)
-        elseif ( ply:Team() == FACTION_COMBINES ) and ( attacker:Team() == FACTION_COMBINES ) then
-            dmginfo:ScaleDamage(0)
-        else
-            dmginfo:ScaleDamage(1.5)
-        end
+        dmginfo:ScaleDamage(2)
 
         if ( attacker:GetActiveWeapon() and attacker:GetActiveWeapon():GetClass() == "weapon_shotgun" ) then
-            dmginfo:ScaleDamage(4)
+            dmginfo:ScaleDamage(2)
         end
 
         if ( attacker:GetActiveWeapon() and attacker:GetActiveWeapon():GetClass() == "weapon_ar2" ) then
-            dmginfo:ScaleDamage(4)
+            dmginfo:ScaleDamage(2)
+        end
+
+        if ( attacker:GetActiveWeapon() and attacker:GetActiveWeapon():GetClass() == "weapon_crossbow" ) then
+            dmginfo:ScaleDamage(2)
         end
     end
 end
 
+function GM:PlayerShouldTakeDamage(ply, attacker)
+    if ( attacker:Team() == ply:Team() ) then
+        return false
+    else
+        return true
+    end
+end
+
 function GM:PlayerNoClip(ply)
-    return ply:SteamID() == "STEAM_0:1:1395956"
+    return ply:IsSuperAdmin()
 end
 
 function GM:PlayerSwitchFlashlight()
